@@ -87,7 +87,7 @@ export default function ExpenseScreen() {
     if (isNaN(d)) return false;
     const today = new Date();
     return (
-      d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth
+      d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth()
     );
   }
 
@@ -127,7 +127,7 @@ export default function ExpenseScreen() {
 
   const startEdit = (expense) => {
     setEditingExpense(expense);
-    setEditingAmount(String(expense.amount));
+    setEditAmount(String(expense.amount));
     setEditCategory(expense.category);
     setEditNote(expense.note || '');
     if (expense.date && expense.date.length >= 10) {
@@ -149,7 +149,7 @@ export default function ExpenseScreen() {
         return;
     }
     const trimmedDate = editDate.trim();
-    if (!timmedDate) {
+    if (!trimmedDate) {
         alert ('Date is required (YYYY-MM-DD).');
         return;
     }
@@ -166,7 +166,7 @@ export default function ExpenseScreen() {
         ]
     );
     setEditingExpense(null);
-    loadEzpenses();
+    loadExpenses();
   }
 
   const renderExpense = ({ item }) => (
@@ -202,7 +202,7 @@ export default function ExpenseScreen() {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           amount REAL NOT NULL,
           category TEXT NOT NULL,
-          note TEXT
+          note TEXT,
           date TEXT NOT NULL
         );
       `);
@@ -216,6 +216,88 @@ export default function ExpenseScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Text style={styles.heading}>Student Expense Tracker</Text>
+      {/* Filter buttons */}
+      <View style={{ flexDirection: 'row', marginBottom: 8 }}>
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === 'ALL' && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter('ALL')}
+        >
+          <Text
+            style={[
+              styles.filterButtonText,
+              filter === 'ALL' && styles.filterButtonTextActive,
+            ]}
+          >
+            All
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === 'WEEK' && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter('WEEK')}
+        >
+          <Text
+            style={[
+              styles.filterButtonText,
+              filter === 'WEEK' && styles.filterButtonTextActive,
+            ]}
+          >
+            This Week
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.filterButton,
+            filter === 'MONTH' && styles.filterButtonActive,
+          ]}
+          onPress={() => setFilter('MONTH')}
+        >
+          <Text
+            style={[
+              styles.filterButtonText,
+              filter === 'MONTH' && styles.filterButtonTextActive,
+            ]}
+          >
+            This Month
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Totals */}
+      <View style={styles.totalsBox}>
+        <Text style={{ color: '#e5e7eb', fontWeight: '600' }}>
+          Total Spending ({filterLabel}):
+        </Text>
+        <Text style={{ color: '#fbbf24', fontSize: 20, fontWeight: '700' }}>
+          ${totalSpending.toFixed(2)}
+        </Text>
+
+        <Text
+          style={{ color: '#e5e7eb', fontWeight: '600', marginTop: 8 }}
+        >
+          By Category ({filterLabel}):
+        </Text>
+
+        {Object.keys(totalsByCategory).length === 0 ? (
+          <Text style={styles.empty}>No expenses for this filter.</Text>
+        ) : (
+          Object.entries(totalsByCategory).map(([cat, amt]) => (
+            <Text
+              key={cat}
+              style={{ color: '#e5e7eb', fontSize: 13 }}
+            >
+              • {cat}: ${amt.toFixed(2)}
+            </Text>
+          ))
+        )}
+      </View>
 
       <View style={styles.form}>
         <TextInput
@@ -255,6 +337,53 @@ export default function ExpenseScreen() {
       <Text style={styles.footer}>
         Enter your expenses and they’ll be saved locally with SQLite.
       </Text>
+            <Modal
+        visible={!!editingExpense}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEditingExpense(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.heading}>Edit Expense</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Amount"
+              placeholderTextColor="#9ca3af"
+              keyboardType="numeric"
+              value={editAmount}
+              onChangeText={setEditAmount}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Category"
+              placeholderTextColor="#9ca3af"
+              value={editCategory}
+              onChangeText={setEditCategory}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Note (optional)"
+              placeholderTextColor="#9ca3af"
+              value={editNote}
+              onChangeText={setEditNote}
+            />
+            <TextInput
+              style={styles.input}
+              placeholder="Date (YYYY-MM-DD)"
+              placeholderTextColor="#9ca3af"
+              value={editDate}
+              onChangeText={setEditDate}
+            />
+
+            <View style={styles.modalButtons}>
+              <Button title="Cancel" onPress={() => setEditingExpense(null)} />
+              <Button title="Save" onPress={handleSaveEdit} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -315,5 +444,47 @@ const styles = StyleSheet.create({
     color: '#6b7280',
     marginTop: 12,
     fontSize: 12,
+  },
+    filterButton: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: '#374151',
+    marginRight: 8,
+  },
+  filterButtonActive: {
+    backgroundColor: '#2563eb',
+    borderColor: '#2563eb',
+  },
+  filterButtonText: {
+    color: '#e5e7eb',
+    fontSize: 13,
+  },
+  filterButtonTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  totalsBox: {
+    backgroundColor: '#1f2937',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  modalContent: {
+    backgroundColor: '#111827',
+    borderRadius: 10,
+    padding: 16,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 8,
   },
 });
