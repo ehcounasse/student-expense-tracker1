@@ -125,20 +125,75 @@ export default function ExpenseScreen() {
   ? "This Week"
   : "This Month";
 
+  const startEdit = (expense) => {
+    setEditingExpense(expense);
+    setEditingAmount(String(expense.amount));
+    setEditCategory(expense.category);
+    setEditNote(expense.note || '');
+    if (expense.date && expense.date.length >= 10) {
+        setEditDate(expense.date.slice(0,10));
+    } else {
+        setEditDate('');
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingExpense) return;
+    const amountNumber = parseFloat(editAmount);
+    if (isNaN(amountNumber) || amountNumber <= 0) {alert('Please enter a valid positive amount.');
+        return;
+    }
+    const trimmedCategory = editCategory.trim();
+    if (!trimmedCategory) {
+        alert ('Category is required');
+        return;
+    }
+    const trimmedDate = editDate.trim();
+    if (!timmedDate) {
+        alert ('Date is required (YYYY-MM-DD).');
+        return;
+    }
+    await db.runAsync(
+        `Update expenses
+        SET amount = ?, category = ?, note = ?, date = ?
+        WHERE id = ?`,
+        [
+            amountNumber,
+            trimmedCategory,
+            editNote.trim() || null,
+            trimmedDate,
+            editingExpense.id,
+        ]
+    );
+    setEditingExpense(null);
+    loadEzpenses();
+  }
 
   const renderExpense = ({ item }) => (
     <View style={styles.expenseRow}>
       <View style={{ flex: 1 }}>
-        <Text style={styles.expenseAmount}>${Number(item.amount).toFixed(2)}</Text>
+        <Text style={styles.expenseAmount}>
+          ${Number(item.amount).toFixed(2)}
+        </Text>
         <Text style={styles.expenseCategory}>{item.category}</Text>
         {item.note ? <Text style={styles.expenseNote}>{item.note}</Text> : null}
+        <Text style={styles.expenseNote}>
+          {item.date ? item.date.slice(0, 10) : ''}
+        </Text>
       </View>
 
-      <TouchableOpacity onPress={() => deleteExpense(item.id)}>
-        <Text style={styles.delete}>✕</Text>
-      </TouchableOpacity>
+      <View style={{ alignItems: 'flex-end' }}>
+        <TouchableOpacity onPress={() => startEdit(item)}>
+          <Text style={{ color: '#60a5fa', marginBottom: 4 }}>Edit</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => deleteExpense(item.id)}>
+          <Text style={styles.delete}>✕</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
+
+
 
   useEffect(() => {
     async function setup() {
@@ -189,7 +244,7 @@ export default function ExpenseScreen() {
       </View>
 
       <FlatList
-        data={expenses}
+        data={filteredExpenses}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderExpense}
         ListEmptyComponent={
