@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
+  ScrollView,
 } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 
@@ -117,6 +118,13 @@ export default function ExpenseScreen() {
     }
     return map;
   }, [filteredExpenses]);
+
+  const chartData = useMemo(() => {
+    const entries = Object.entries(totalsByCategory)
+    const amounts = entries.map(([, amt])=> amt);
+    const maxAmount = amounts.length > 0 ? Math.max(...amounts) : 0;
+    return { entries, maxAmount };
+  }, [totalsByCategory]);
 
   const filterLabel =
   filter === "ALL"
@@ -298,7 +306,41 @@ export default function ExpenseScreen() {
           ))
         )}
       </View>
-
+        <View style={styles.chartContainer}>
+          <Text style = {styles.chartTitle}>
+            Spending by Category ({filterLabel})
+          </Text>
+          <Text style = {styles.chartAxisLabel}>
+            Amount ($)
+          </Text>
+          {chartData.entries.length === 0 ? (
+            <Text style = {styles.empty}>No data to display.</Text>
+          ) : (
+            <ScrollView horizontal 
+            contentContainerStyle={styles.chartScrollContent} 
+            showsHorizontalScrollIndicator={false}
+            >
+            <View style = {styles.chartBarsRow}>
+              {chartData.entries.map(([cat, amt])=> {
+                const barHeight =
+                chartData.maxAmount > 0 
+                ? (amt / chartData.maxAmount) * 120 
+                : 0;
+                return (
+                  <View key = {cat} style = {styles.barItem}>
+                  <View style = {[styles.bar, {height: barHeight}]} />
+                  <Text style = {styles.barValue}>${amt.toFixed(0)}</Text>
+                  <Text style = {styles.barLabel} numberOfLines={1}>
+                    {cat}
+                  </Text>
+                  </View>
+                );
+              })}
+            </View>
+            </ScrollView>
+        )}
+        <Text style = {styles.chartXAxisLabel}>Categories</Text>
+        </View>
       <View style={styles.form}>
         <TextInput
           style={styles.input}
@@ -471,6 +513,59 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
   },
+
+  chartContainer: {
+    backgroundColor: '#1f2937',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  chartTitle: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  chartAxisLabel: {
+    color: '#e5e7eb',
+    fontSize: 12,
+    marginBottom: 8,
+  },
+  chartBarsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+  },
+  chartScrollContent: {
+    paddingVertical: 4,
+  },
+  barItem: {
+    alignItems: 'center',
+    marginHorizontal: 6,
+  },
+  bar: {
+    width: 24,
+    borderRadius: 6,
+    backgroundColor: '#fbbf24',
+  },
+  barValue: {
+    color: '#e5e7eb',
+    fontSize: 10,
+    marginTop: 4,
+  },
+  barLabel: {
+    color: '#e5e7eb',
+    fontSize: 10,
+    marginTop: 2,
+    maxWidth: 50,
+    textAlign: 'center',
+  },
+  chartXAxisLabel: {
+    color: '#e5e7eb',
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
+  },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
